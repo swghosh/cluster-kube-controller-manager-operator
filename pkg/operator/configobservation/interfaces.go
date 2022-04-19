@@ -15,6 +15,7 @@ type Listers struct {
 	FeatureGateLister_    configlistersv1.FeatureGateLister
 	InfrastructureLister_ configlistersv1.InfrastructureLister
 	NetworkLister         configlistersv1.NetworkLister
+	NodeLister            configlistersv1.NodeLister
 	ProxyLister_          configlistersv1.ProxyLister
 	ConfigMapLister_      corev1listers.ConfigMapLister
 	APIServerLister_      configlistersv1.APIServerLister

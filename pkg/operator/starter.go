@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/cluster-kube-controller-manager-operator/bindata"
 	"github.com/openshift/cluster-kube-controller-manager-operator/pkg/operator/certrotationcontroller"
 	"github.com/openshift/cluster-kube-controller-manager-operator/pkg/operator/configobservation/configobservercontroller"
+	"github.com/openshift/cluster-kube-controller-manager-operator/pkg/operator/latencyprofilecontroller"
 	"github.com/openshift/cluster-kube-controller-manager-operator/pkg/operator/operatorclient"
 	"github.com/openshift/cluster-kube-controller-manager-operator/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/cluster-kube-controller-manager-operator/pkg/operator/targetconfigcontroller"
@@ -168,6 +169,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 			{Group: "certificates.k8s.io", Resource: "certificatesigningrequests"},
 			// TODO move to a more appropriate operator. One that creates and manages these.
 			{Resource: "nodes"},
+			{Group: "config.openshift.io", Resource: "nodes", Name: "cluster"},
 		},
 		configClient.ConfigV1(),
 		configInformers.Config().V1().ClusterOperators(),
@@ -207,6 +209,15 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		cc.EventRecorder,
 	)
 
+	latencyProfile := latencyprofilecontroller.NewLatencyProfileController(
+		operatorClient,
+		configClient.ConfigV1(),
+		configInformers.Config().V1().Nodes(),
+		kubeInformersForNamespaces,
+		kubeClient,
+		cc.EventRecorder,
+	)
+
 	configInformers.Start(ctx.Done())
 	kubeInformersForNamespaces.Start(ctx.Done())
 	dynamicInformers.Start(ctx.Done())
@@ -220,6 +231,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 	go certRotationController.Run(ctx, 1)
 	go saTokenController.Run(ctx, 1)
 	go staleConditions.Run(ctx, 1)
+	go latencyProfile.Run(ctx, 1)
 
 	<-ctx.Done()
 	return nil
