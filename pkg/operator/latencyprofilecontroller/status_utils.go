@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	apiconfigv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -15,6 +16,8 @@ const (
 	reasonLatencyProfileUpdateTriggered = "ProfileUpdateTriggered"
 	reasonLatencyProfileUpdated         = "ProfileUpdated"
 	reasonLatencyProfileEmpty           = "ProfileEmpty"
+
+	wlpPrefix = "WorkerLatencyProfile"
 )
 
 // setWLPStatusCondition is used to set condition in config node object status.workerLatencyProfileStatus
@@ -88,10 +91,16 @@ func (c *LatencyProfileController) alternateUpdateStatus(ctx context.Context, ne
 }
 
 func copyConditions(conditions ...metav1.Condition) []operatorv1.OperatorCondition {
+	operatorTypes := map[string]string{
+		apiconfigv1.KubeControllerManagerComplete:    wlpPrefix + "Complete",
+		apiconfigv1.KubeControllerManagerDegraded:    wlpPrefix + operatorv1.OperatorStatusTypeDegraded,
+		apiconfigv1.KubeControllerManagerProgressing: wlpPrefix + operatorv1.OperatorStatusTypeProgressing,
+	}
+
 	operatorConditions := make([]operatorv1.OperatorCondition, len(conditions))
 	for i, condition := range conditions {
 		operatorConditions[i] = operatorv1.OperatorCondition{
-			Type:    condition.Type,
+			Type:    operatorTypes[condition.Type],
 			Status:  operatorv1.ConditionStatus(condition.Status),
 			Message: condition.Message,
 			Reason:  condition.Reason,
