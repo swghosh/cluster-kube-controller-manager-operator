@@ -127,15 +127,16 @@ func (c *LatencyProfileController) updateLatencyProfileSyncedStatus(ctx context.
 
 		degradedCondition.Status = metav1.ConditionFalse
 		progressingCondition.Status = metav1.ConditionFalse
-		completedCondition.Status = metav1.ConditionFalse
+		completedCondition.Status = metav1.ConditionTrue
 
-		degradedCondition.Reason = reasonLatencyProfileEmpty
-		progressingCondition.Reason = reasonLatencyProfileEmpty
+		degradedCondition.Reason = "AsExpected"
+		progressingCondition.Reason = "AsExpected"
 		completedCondition.Reason = reasonLatencyProfileEmpty
 
-		degradedCondition.Message = "worker latency profile not set on cluster"
+		completedCondition.Message = "worker latency profile not set on cluster"
 
-		_, err := c.updateConfigNodeStatus(ctx, degradedCondition, progressingCondition, completedCondition)
+		_, _ = c.updateConfigNodeStatus(ctx, degradedCondition, progressingCondition, completedCondition)
+		_, err = c.alternateUpdateStatus(ctx, copyConditions(degradedCondition, progressingCondition, completedCondition)...)
 		return err
 	}
 
@@ -211,7 +212,8 @@ func (c *LatencyProfileController) updateLatencyProfileSyncedStatus(ctx context.
 		degradedCondition.Status = metav1.ConditionFalse
 		degradedCondition.Reason = reasonLatencyProfileUpdateTriggered
 	}
-	_, err = c.updateConfigNodeStatus(ctx, degradedCondition, progressingCondition, completedCondition)
+	_, _ = c.updateConfigNodeStatus(ctx, degradedCondition, progressingCondition, completedCondition)
+	_, err = c.alternateUpdateStatus(ctx, copyConditions(degradedCondition, progressingCondition, completedCondition)...)
 	return err
 }
 

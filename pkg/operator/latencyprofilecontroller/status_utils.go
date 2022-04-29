@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -74,4 +76,26 @@ func (c *LatencyProfileController) updateConfigNodeStatus(ctx context.Context, n
 	})
 
 	return updated, err
+}
+
+func (c *LatencyProfileController) alternateUpdateStatus(ctx context.Context, newConditions ...operatorv1.OperatorCondition) (updated bool, err error) {
+	updateFuncs := make([]v1helpers.UpdateStatusFunc, len(newConditions))
+	for i, newCondition := range newConditions {
+		updateFuncs[i] = v1helpers.UpdateConditionFn(newCondition)
+	}
+	_, updated, err = v1helpers.UpdateStatus(ctx, c.operatorClient, updateFuncs...)
+	return updated, err
+}
+
+func copyConditions(conditions ...metav1.Condition) []operatorv1.OperatorCondition {
+	operatorConditions := make([]operatorv1.OperatorCondition, len(conditions))
+	for i, condition := range conditions {
+		operatorConditions[i] = operatorv1.OperatorCondition{
+			Type:    condition.Type,
+			Status:  operatorv1.ConditionStatus(condition.Status),
+			Message: condition.Message,
+			Reason:  condition.Reason,
+		}
+	}
+	return operatorConditions
 }
